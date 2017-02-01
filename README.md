@@ -9,7 +9,14 @@ Nodes use MySensor network.
 From now, just a basic serial Gateway
 
 ## Garage node
+
     * Temperature sensor with `Dallas DS18B20`
     * Control the garage door motor with one way relay
     * 2 magnetic sensors for garage door position (open/close)
+
+## Water tank node
+
+    * In progress
+    * Temperature sensor with `Dallas DS18B20`
+    * Get the water level in tank with `HC-SR04`
 

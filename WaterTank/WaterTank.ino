@@ -17,7 +17,7 @@
 #include <MySensors.h>  
 #include <DallasTemperature.h>
 #include <OneWire.h>
-#include <Bounce2.h>
+#include <NewPing.h>
 
 /////////////////////////////////////////////////////////////
 // Definition
@@ -25,25 +25,11 @@
 
 #define PIN_SENSOR_TEMP 3 //D3
 #define PIN_BATTERY_SENSE 14 // A0
-#define PIN_RELAY_GARAGE_DOOR 18 // A4
-#define PIN_CONTACT_GARAGE_DOOR_OPEN 4 // D4
-#define PIN_CONTACT_GARAGE_DOOR_CLOSE 5 // D5
+#define PIN_TRIGGER_WATER_LEVEL  6  // Arduino pin tied to trigger pin on the ultrasonic sensor.
+#define PIN_WATER_LEVEL_ECHO   5  // Arduino pin tied to echo pin on the ultrasonic sensor.
 
 #define TEMP_SENSOR_ID 0
-#define RELAY_GARAGE_DOOR_ID 1
-#define CONTACT_GARAGE_DOOR_OPEN_ID 2
-#define CONTACT_GARAGE_DOOR_CLOSE_ID 3
-
-#define MAX_ATTACHED_DS18B20 16
-
-#ifdef MY_DEBUG
-  #define SLEEP_TIME  1000
-#else
-  #define SLEEP_TIME  30000
-#endif
-
-#define RELAY_ON LOW  
-#define RELAY_OFF HIGH
+#define WATER_LEVEL_SENSOR_ID 1
 
 /////////////////////////////////////////////////////////////
 // Global variables 
@@ -60,15 +46,13 @@ DallasTemperature sensorsTemp(&oneWireTemp); // Pass the oneWire reference to Da
 float lastTemperature = -255.;
 MyMessage tempMsg(TEMP_SENSOR_ID, V_TEMP);
 
-/////////////////// DOOR CONTACT /////////////////////////////
+/////////////////// WATER LEVEL /////////////////////////////
 
-Bounce debouncerDoorOpen = Bounce(); 
-MyMessage doorOpenMsg(CONTACT_GARAGE_DOOR_OPEN_ID, V_TRIPPED);
-int previousStatusContactDoorOpen = -42;
+#define MAX_WATER_DISTANCE 200 // This value define the empty tank level(in cm)
+#define MIN_WATER_DISTANCE 50 // This value define the full tank level(in cm)
 
-Bounce debouncerDoorClose = Bounce(); 
-MyMessage doorCloseMsg(CONTACT_GARAGE_DOOR_CLOSE_ID, V_TRIPPED);
-int previousStatusContactDoorClose = -42;
+NewPing sonar(PIN_TRIGGER_WATER_LEVEL, PIN_WATER_LEVEL_ECHO, MAX_WATER_DISTANCE);
+MyMessage msg(CHILD_ID, V_DISTANCE);
 
 /////////////////////////////////////////////////////////////
 // Function
@@ -81,83 +65,41 @@ void before()
 
 void setup() {
 
-  pinMode(PIN_RELAY_GARAGE_DOOR, OUTPUT);
-  digitalWrite(PIN_RELAY_GARAGE_DOOR, RELAY_OFF);
-
-  pinMode(PIN_CONTACT_GARAGE_DOOR_OPEN, INPUT);
-  digitalWrite(PIN_CONTACT_GARAGE_DOOR_OPEN, HIGH);
-  debouncerDoorOpen.attach(PIN_CONTACT_GARAGE_DOOR_OPEN);
-  debouncerDoorOpen.interval(5);
-
-  pinMode(PIN_CONTACT_GARAGE_DOOR_CLOSE, INPUT);
-  digitalWrite(PIN_CONTACT_GARAGE_DOOR_CLOSE, HIGH);
-  debouncerDoorClose.attach(PIN_CONTACT_GARAGE_DOOR_CLOSE);
-  debouncerDoorClose.interval(5);
-
   sensorsTemp.setWaitForConversion(false);
 
   // For battery lvel
   #if defined(__AVR_ATmega2560__)
-   analogReference(INTERNAL1V1);
+    analogReference(INTERNAL1V1);
   #else
-     analogReference(INTERNAL);
+    analogReference(INTERNAL);
   #endif 
 }
 
 void presentation() {
 
-  sendSketchInfo("Node garage", "1.0", true);
+  sendSketchInfo("Water tank node", "1.0", true);
   present(TEMP_SENSOR_ID, S_TEMP);
-  present(RELAY_GARAGE_DOOR_ID, S_BINARY);
-  present(CONTACT_GARAGE_DOOR_OPEN_ID, S_DOOR);  
-  present(CONTACT_GARAGE_DOOR_CLOSE_ID, S_DOOR);  
+  present(WATER_LEVEL_SENSOR_ID, S_DISTANCE);
+ 
 }
 
 void loop() {
 
-  sendStatusContactDoor();
   sendTemperature();
+  sendWaterLevel();
   sendBatteryPercentage();
   sendHeartbeat();
   sleep(SLEEP_TIME);
 
 }
 
-void receive(const MyMessage &message) {
-  if (message.type == V_STATUS) {
-    if(message.sensor == RELAY_GARAGE_DOOR_ID){
-       digitalWrite(PIN_RELAY_GARAGE_DOOR, message.getBool() ? RELAY_ON : RELAY_OFF);
-    }
-  }
-}
-
 /**
- * This contact send the value 
+ * This function send the percentage of water level in tank
  */
-void sendStatusContactDoor() {
-
-  debouncerDoorOpen.update();
-  int value = debouncerDoorOpen.read();
-  #ifdef MY_DEBUG
-    Serial.print("Contact door open: ");
-    Serial.println((value == HIGH) ? "activated" : "unactivated");
-  #endif
-  if (value != previousStatusContactDoorOpen) {
-     send(doorOpenMsg.set(value == HIGH ? 1 : 0));
-     previousStatusContactDoorOpen = value;
-  }
-
-  debouncerDoorClose.update();
-  value = debouncerDoorClose.read();
-  #ifdef MY_DEBUG
-    Serial.print("Contact door close: ");
-    Serial.println((value == HIGH) ? "activated" : "unactivated");
-  #endif
-  if (value != previousStatusContactDoorClose) {
-     send(doorCloseMsg.set(value == HIGH ? 1 : 0));
-     previousStatusContactDoorClose = value;
-  }
+void sendWaterLevel(){
+    //TODO
 }
+
 
 /**
  * This function send the percentage of battery for this node
