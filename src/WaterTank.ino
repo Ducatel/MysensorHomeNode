@@ -31,6 +31,13 @@
 #define TEMP_SENSOR_ID 0
 #define WATER_LEVEL_SENSOR_ID 1
 
+
+#ifdef MY_DEBUG
+  #define SLEEP_TIME  1000
+#else
+  #define SLEEP_TIME  30000
+#endif
+
 /////////////////////////////////////////////////////////////
 // Global variables 
 /////////////////////////////////////////////////////////////
@@ -52,7 +59,7 @@ MyMessage tempMsg(TEMP_SENSOR_ID, V_TEMP);
 #define MIN_WATER_DISTANCE 50 // This value define the full tank level(in cm)
 
 NewPing sonar(PIN_TRIGGER_WATER_LEVEL, PIN_WATER_LEVEL_ECHO, MAX_WATER_DISTANCE);
-MyMessage msg(CHILD_ID, V_DISTANCE);
+MyMessage msg(WATER_LEVEL_SENSOR_ID, V_DISTANCE);
 
 /////////////////////////////////////////////////////////////
 // Function
